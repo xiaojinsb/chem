@@ -10,6 +10,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -72,7 +73,7 @@ public class IndigoController {
     public Map<String, String> check(@RequestBody Map<String, Object> reqMap) {
         IndigoObject mol = indigo.loadMolecule((String) reqMap.get("struct"));
         Map<String, String> map = new HashMap<String, String>();
-        map.put("valence",mol.checkBadValence());
+        map.put("valence", mol.checkBadValence());
         return map;
     }
 
@@ -103,5 +104,44 @@ public class IndigoController {
             output_format = mol.cml();
         }
         return R.ok().put("struct", output_format);
+    }
+
+    //速度测试
+    @GetMapping("/search")
+    public R search() {
+        File file = new File("D:/mol.txt");
+        Long filelength = file.length();
+        byte[] filecontent = new byte[filelength.intValue()];
+        try {
+            FileInputStream in = new FileInputStream(file);
+            in.read(filecontent);
+            in.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String mols = new String(filecontent);
+        String[] molArr = mols.split("####################");
+        int yes = 0;
+        int no = 0;
+        for (int i = 0; i < 1491; i++) {
+            molArr[i] = molArr[i].replace(molArr[i].split("  ")[0], "\n");
+//            System.out.println(molArr[i]);
+            try {
+                IndigoObject mol1 = indigo.loadMolecule("C1=CC=CC=C1");
+                IndigoObject mol2 = indigo.loadMolecule(molArr[i]);
+                System.out.println("默认权重：" + indigo.similarity(mol1, mol2, "tversky"));
+                yes += 1;
+            } catch (Exception e) {
+//                e.printStackTrace();
+                no += 1;
+            }
+        }
+
+        System.out.println("正常计算：" + yes);
+        System.out.println("错误计算：" + no);
+
+        return R.ok();
     }
 }

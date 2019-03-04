@@ -7,6 +7,8 @@ Indigo Toolkit [GitHub](https://github.com/epam/Indigo) [文档](http://lifescie
 ## 说明
 
 ketcher  实现所有方法 除了一些因为Indigo 中没有方法 暂无法实现
+修复了ketcher 在谷歌浏览器 按钮名称显示的bug
+修复了示例搜索框的样式
 
 OCR识别 因为没有编译包 暂无法实现
 
