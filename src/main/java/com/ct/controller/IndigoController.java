@@ -3,14 +3,12 @@ package com.ct.controller;
 import com.ct.util.R;
 import com.epam.indigo.Indigo;
 import com.epam.indigo.IndigoObject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -106,9 +104,7 @@ public class IndigoController {
         return R.ok().put("struct", output_format);
     }
 
-    //速度测试
-    @GetMapping("/search")
-    public R search() {
+    public String[] molArr() {
         File file = new File("D:/mol.txt");
         Long filelength = file.length();
         byte[] filecontent = new byte[filelength.intValue()];
@@ -123,25 +119,71 @@ public class IndigoController {
         }
         String mols = new String(filecontent);
         String[] molArr = mols.split("####################");
+        return molArr;
+    }
+
+    //多线程
+    class ThreadTest extends Thread {
+        String[] molArr = molArr();
+        private int begin;
+        private int end;
+        int yes = 0;
+        int no = 0;
+
+        @Override
+        public synchronized void run() {
+            for (int i = begin; i < end; i++) {
+                molArr[i] = molArr[i].replace(molArr[i].split("  ")[0], "\n");
+                try {
+                    IndigoObject mol1 = indigo.loadMolecule("C1=CC=CC=C1");
+                    IndigoObject mol2 = indigo.loadMolecule(molArr[i]);
+                    indigo.similarity(mol1, mol2, "tversky");
+                    yes += 1;
+                } catch (Exception e) {
+                    no += 1;
+                }
+            }
+            System.out.println("正常计算：" + yes);
+            System.out.println("错误计算：" + no);
+        }
+
+        public ThreadTest(int begin, int end) {
+            this.begin = begin;
+            this.end = end;
+        }
+    }
+
+    @GetMapping("/search")
+    public R search() throws InterruptedException {
+        ThreadTest thread1 = new ThreadTest(0, 500);
+        ThreadTest thread2 = new ThreadTest(500, 1000);
+        ThreadTest thread3 = new ThreadTest(1000, 1491);
+        thread1.start();
+        thread2.start();
+        thread3.start();
+        return R.ok();
+    }
+
+    //单线程
+    @GetMapping("/search1")
+    public R search1() {
+        String[] molArr = molArr();
         int yes = 0;
         int no = 0;
         for (int i = 0; i < 1491; i++) {
             molArr[i] = molArr[i].replace(molArr[i].split("  ")[0], "\n");
-//            System.out.println(molArr[i]);
             try {
                 IndigoObject mol1 = indigo.loadMolecule("C1=CC=CC=C1");
                 IndigoObject mol2 = indigo.loadMolecule(molArr[i]);
-                System.out.println("默认权重：" + indigo.similarity(mol1, mol2, "tversky"));
+                indigo.similarity(mol1, mol2, "euclid-sub");
                 yes += 1;
             } catch (Exception e) {
-//                e.printStackTrace();
                 no += 1;
             }
         }
 
         System.out.println("正常计算：" + yes);
         System.out.println("错误计算：" + no);
-
         return R.ok();
     }
 }
