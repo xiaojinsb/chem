@@ -3,6 +3,7 @@ package com.ct.controller;
 import com.ct.util.R;
 import com.epam.indigo.Indigo;
 import com.epam.indigo.IndigoObject;
+import com.ggasoftware.imago.Imago;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
@@ -17,12 +18,24 @@ import java.util.Map;
 public class IndigoController {
 
     Indigo indigo = new Indigo();
-
+    Imago imago = new Imago();
 
     //如果没有info方法 不会显示 高级功能按钮
     @GetMapping("/info")
     public R info() {
-        return R.ok().put("indigo_version", indigo.version());
+        return R.ok().put("indigo_version", indigo.version()).put("imago_versions", imago.getVersion());
+    }
+
+    //转码 3d功能需要cml编码
+    @PostMapping("/convert")
+    public R convert(@RequestBody Map<String, Object> reqMap) {
+        String format = (String) reqMap.get("output_format");
+        IndigoObject mol = indigo.loadMolecule((String) reqMap.get("struct"));
+        String output_format = "";
+        if (format.equals("chemical/x-cml")) {
+            output_format = mol.cml();
+        }
+        return R.ok().put("struct", output_format);
     }
 
     //整理
@@ -82,26 +95,10 @@ public class IndigoController {
         return R.ok().put("molecular-weight", mol.molecularWeight()).put("most-abundant-mass", mol.mostAbundantMass()).put("monoisotopic-mass", mol.monoisotopicMass()).put("gross", mol.grossFormula()).put("mass-composition", mol.massComposition());
     }
 
-
-    //转码 3d功能需要cml编码
-    @PostMapping("/convert")
-    public R convert(@RequestBody Map<String, Object> reqMap) {
-        String format = (String) reqMap.get("output_format");
-        IndigoObject mol = indigo.loadMolecule((String) reqMap.get("struct"));
-        String output_format = "";
-        System.out.println(format);
-        if (format.equals("chemical/x-chemaxon-cxsmiles")) {
-            output_format = "暂不支持";
-        } else if (format.equals("chemical/x-daylight-smarts")) {
-            output_format = "暂不支持";
-        } else if (format.equals("chemical/x-inchi")) {
-            output_format = "暂不支持";
-        } else if (format.equals("chemical/x-inchi-aux")) {
-            output_format = "暂不支持";
-        } else if (format.equals("chemical/x-cml")) {
-            output_format = mol.cml();
-        }
-        return R.ok().put("struct", output_format);
+    //OCR
+    @PostMapping("/imago")
+    public R imago() {
+        return R.ok();
     }
 
     public String[] molArr() {
